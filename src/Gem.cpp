@@ -18,7 +18,10 @@ Gem::Gem(int row, int col, GemType type)
 }
 
 void Gem::update(float deltaTime) {
-    const float ANIMATION_SPEED = 2.0f;  // ~0.5 second fall time
+    // ANIMATION_SPEED controls how fast gems move during falling/swapping animations.
+    // Higher values = faster animations. The animation completes when progress reaches 1.0,
+    // so total duration is approximately 1/ANIMATION_SPEED seconds.
+    const float ANIMATION_SPEED = 3.0f;  // ~0.33 second animation time
 
     if (state == GemState::FALLING || state == GemState::SWAPPING) {
         // Initialize starting positions on first frame of animation

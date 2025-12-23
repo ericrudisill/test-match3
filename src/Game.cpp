@@ -31,8 +31,8 @@ bool Game::init() {
     int windowHeight = 1280;
 
 #ifdef PLATFORM_DESKTOP
-    windowWidth = 480;
-    windowHeight = 800;
+    windowWidth = 1080;
+    windowHeight = 1920;
 #endif
 
     window = SDL_CreateWindow(
