@@ -15,7 +15,7 @@ Gem::Gem(int row, int col, GemType type)
 }
 
 void Gem::update(float deltaTime) {
-    const float ANIMATION_SPEED = 8.0f;
+    const float ANIMATION_SPEED = 2.0f;  // ~0.5 second fall time
 
     if (state == GemState::FALLING || state == GemState::SWAPPING) {
         animationProgress += deltaTime * ANIMATION_SPEED;

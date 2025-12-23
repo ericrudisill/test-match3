@@ -169,7 +169,6 @@ void Game::updateGameLogic(float deltaTime) {
         case GameState::REMOVING_MATCHES:
             grid->removeMatches();
             grid->applyGravity();
-            grid->fillEmpty();
 
             // Check for cascade matches
             grid->checkMatches();
