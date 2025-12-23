@@ -3,6 +3,7 @@
 #include "Grid.h"
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
+#include <array>
 
 class Renderer {
 public:
@@ -25,7 +26,11 @@ private:
     int gridOffsetX;
     int gridOffsetY;
 
+    // Gem sprite textures indexed by GemType
+    std::array<SDL_Texture*, static_cast<size_t>(GemType::COUNT)> gemTextures;
+
     void calculateLayout();
+    void loadGemTextures();
     void drawGem(const Gem* gem, float alpha = 1.0f);
     void drawBackground();
     void drawScore(int score);

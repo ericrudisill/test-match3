@@ -1,5 +1,6 @@
 #include "Renderer.h"
 #include "MathUtils.h"
+#include <SDL3_image/SDL_image.h>
 #include <cmath>
 #include <cstdio>
 
@@ -11,8 +12,10 @@ Renderer::Renderer(SDL_Renderer* renderer, int windowWidth, int windowHeight)
     , gemSize(0)
     , gridOffsetX(0)
     , gridOffsetY(0)
+    , gemTextures{}
 {
     calculateLayout();
+    loadGemTextures();
 
     // Load font from bundled assets directory
     // The font file should be placed in assets/fonts/ relative to the executable
@@ -23,7 +26,35 @@ Renderer::Renderer(SDL_Renderer* renderer, int windowWidth, int windowHeight)
     }
 }
 
+void Renderer::loadGemTextures() {
+    // Map GemType to sprite file numbers based on colors:
+    // RED=06.png, GREEN=02.png, BLUE=01.png, YELLOW=03.png, PURPLE=08.png, ORANGE=04.png
+    const char* spriteFiles[] = {
+        "assets/sprites/GemStonesV2/64x64px/06.png",  // RED
+        "assets/sprites/GemStonesV2/64x64px/02.png",  // GREEN
+        "assets/sprites/GemStonesV2/64x64px/01.png",  // BLUE
+        "assets/sprites/GemStonesV2/64x64px/03.png",  // YELLOW
+        "assets/sprites/GemStonesV2/64x64px/08.png",  // PURPLE
+        "assets/sprites/GemStonesV2/64x64px/04.png",  // ORANGE
+    };
+
+    for (size_t i = 0; i < static_cast<size_t>(GemType::COUNT); ++i) {
+        gemTextures[i] = IMG_LoadTexture(renderer, spriteFiles[i]);
+        if (!gemTextures[i]) {
+            SDL_Log("Warning: Could not load gem texture %s: %s", spriteFiles[i], SDL_GetError());
+        }
+    }
+}
+
 Renderer::~Renderer() {
+    // Clean up gem textures
+    for (auto& texture : gemTextures) {
+        if (texture) {
+            SDL_DestroyTexture(texture);
+            texture = nullptr;
+        }
+    }
+
     if (font) {
         TTF_CloseFont(font);
         font = nullptr;
@@ -95,24 +126,28 @@ void Renderer::drawBackground() {
 void Renderer::drawGem(const Gem* gem, float alpha) {
     if (!gem) return;
 
-    SDL_Color color = getGemColor(gem->getType());
+    GemType type = gem->getType();
+    if (type == GemType::EMPTY || type == GemType::COUNT) return;
+
     SDL_FRect rect;
     rect.x = gridOffsetX + gem->getX() * gemSize + 4.0f;
     rect.y = gridOffsetY + gem->getY() * gemSize + 4.0f;
     rect.w = static_cast<float>(gemSize - 8);
     rect.h = static_cast<float>(gemSize - 8);
 
-    Uint8 adjustedAlpha = MathUtils::normalizedToByte(alpha);
-    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, adjustedAlpha);
-    SDL_RenderFillRect(renderer, &rect);
-
-    // Draw border (darkened by 30%)
-    SDL_SetRenderDrawColor(renderer,
-        MathUtils::scaleColorComponent(color.r, 0.7f),
-        MathUtils::scaleColorComponent(color.g, 0.7f),
-        MathUtils::scaleColorComponent(color.b, 0.7f),
-        adjustedAlpha);
-    SDL_RenderRect(renderer, &rect);
+    SDL_Texture* texture = gemTextures[static_cast<size_t>(type)];
+    if (texture) {
+        // Draw sprite with alpha modulation
+        Uint8 adjustedAlpha = MathUtils::normalizedToByte(alpha);
+        SDL_SetTextureAlphaMod(texture, adjustedAlpha);
+        SDL_RenderTexture(renderer, texture, nullptr, &rect);
+    } else {
+        // Fallback to colored rectangle if texture failed to load
+        SDL_Color color = getGemColor(type);
+        Uint8 adjustedAlpha = MathUtils::normalizedToByte(alpha);
+        SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, adjustedAlpha);
+        SDL_RenderFillRect(renderer, &rect);
+    }
 }
 
 void Renderer::drawScore(int score) {

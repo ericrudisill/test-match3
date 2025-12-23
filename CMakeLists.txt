@@ -73,6 +73,28 @@ else()
                 "  cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/.local\n"
                 "  cmake --build . && cmake --install .")
     endif()
+
+    # SDL3_image: Try to find via find_package or pkg-config
+    find_package(SDL3_image QUIET)
+    if(NOT SDL3_image_FOUND)
+        find_package(PkgConfig QUIET)
+        if(PkgConfig_FOUND)
+            pkg_check_modules(SDL3_IMAGE IMPORTED_TARGET sdl3-image)
+            if(SDL3_IMAGE_FOUND)
+                set(SDL3_IMAGE_LIBRARIES PkgConfig::SDL3_IMAGE)
+            endif()
+        endif()
+    else()
+        set(SDL3_IMAGE_LIBRARIES SDL3_image::SDL3_image)
+    endif()
+
+    if(NOT SDL3_image_FOUND AND NOT SDL3_IMAGE_FOUND)
+        message(FATAL_ERROR "SDL3_image not found! Please build from source:\n"
+                "  git clone https://github.com/libsdl-org/SDL_image.git SDL3_image --depth 1\n"
+                "  cd SDL3_image && mkdir build && cd build\n"
+                "  cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/.local\n"
+                "  cmake --build . && cmake --install .")
+    endif()
 endif()
 
 # Core logic library (no SDL dependency - for testing)
@@ -115,7 +137,7 @@ else()
 endif()
 
 # Link libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL3_LIBRARIES} ${SDL3_TTF_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL3_LIBRARIES} ${SDL3_TTF_LIBRARIES} ${SDL3_IMAGE_LIBRARIES})
 
 # Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
