@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "MathUtils.h"
+#include <SDL3_ttf/SDL_ttf.h>
 
 Game::Game()
     : window(nullptr)
@@ -17,6 +18,11 @@ Game::~Game() {
 bool Game::init() {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL initialization failed: %s", SDL_GetError());
+        return false;
+    }
+
+    if (!TTF_Init()) {
+        SDL_Log("SDL_ttf initialization failed: %s", SDL_GetError());
         return false;
     }
 
@@ -97,6 +103,7 @@ void Game::cleanup() {
         window = nullptr;
     }
 
+    TTF_Quit();
     SDL_Quit();
 }
 

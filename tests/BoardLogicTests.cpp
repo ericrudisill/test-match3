@@ -367,3 +367,171 @@ TEST_CASE("Board initialization avoids matches", "[init]") {
     auto result = logic.checkMatches(state);
     CHECK(result.matchedPositions.empty());
 }
+
+// ============================================================================
+// Scoring Tests
+// ============================================================================
+
+TEST_CASE("Basic scoring calculation", "[scoring]") {
+    BoardLogic logic;
+
+    SECTION("3-match scores 30 points") {
+        auto state = noMatchBoard();
+        state.at(0, 0) = GemType::RED;
+        state.at(0, 1) = GemType::RED;
+        state.at(0, 2) = GemType::RED;
+
+        auto result = logic.checkMatches(state);
+
+        CHECK(result.score == 30);
+    }
+
+    SECTION("4-match scores 40 points") {
+        auto state = noMatchBoard();
+        state.at(0, 0) = GemType::PURPLE;
+        state.at(0, 1) = GemType::PURPLE;
+        state.at(0, 2) = GemType::PURPLE;
+        state.at(0, 3) = GemType::PURPLE;
+
+        auto result = logic.checkMatches(state);
+
+        CHECK(result.score == 40);
+    }
+
+    SECTION("5-match scores 50 points") {
+        auto state = noMatchBoard();
+        state.at(0, 0) = GemType::PURPLE;
+        state.at(0, 1) = GemType::PURPLE;
+        state.at(0, 2) = GemType::PURPLE;
+        state.at(0, 3) = GemType::PURPLE;
+        state.at(0, 4) = GemType::PURPLE;
+
+        auto result = logic.checkMatches(state);
+
+        CHECK(result.score == 50);
+    }
+
+    SECTION("No match scores 0 points") {
+        auto state = noMatchBoard();
+
+        auto result = logic.checkMatches(state);
+
+        CHECK(result.score == 0);
+    }
+}
+
+TEST_CASE("Multiple matches scoring", "[scoring]") {
+    BoardLogic logic;
+
+    SECTION("Two separate horizontal matches score independently") {
+        auto state = noMatchBoard();
+        // First match: row 0
+        state.at(0, 0) = GemType::RED;
+        state.at(0, 1) = GemType::RED;
+        state.at(0, 2) = GemType::RED;
+        // Second match: row 2
+        state.at(2, 4) = GemType::BLUE;
+        state.at(2, 5) = GemType::BLUE;
+        state.at(2, 6) = GemType::BLUE;
+
+        auto result = logic.checkMatches(state);
+
+        CHECK(result.score == 60);
+        CHECK(result.matchedPositions.size() == 6);
+    }
+
+    SECTION("L-shaped match counts unique gems only") {
+        auto state = noMatchBoard();
+        // Horizontal: row 0, cols 0-2
+        state.at(0, 0) = GemType::PURPLE;
+        state.at(0, 1) = GemType::PURPLE;
+        state.at(0, 2) = GemType::PURPLE;
+        // Vertical: rows 1-2, col 0
+        state.at(1, 0) = GemType::PURPLE;
+        state.at(2, 0) = GemType::PURPLE;
+
+        auto result = logic.checkMatches(state);
+
+        // 5 unique gems * 10 points = 50
+        CHECK(result.score == 50);
+        CHECK(result.matchedPositions.size() == 5);
+    }
+
+    SECTION("T-shaped match scores all unique positions") {
+        auto state = noMatchBoard();
+        // Horizontal: row 1, cols 0-2
+        state.at(1, 0) = GemType::ORANGE;
+        state.at(1, 1) = GemType::ORANGE;
+        state.at(1, 2) = GemType::ORANGE;
+        // Vertical: rows 0, 2, col 1
+        state.at(0, 1) = GemType::ORANGE;
+        state.at(2, 1) = GemType::ORANGE;
+
+        auto result = logic.checkMatches(state);
+
+        // 5 unique gems * 10 points = 50
+        CHECK(result.score == 50);
+    }
+}
+
+TEST_CASE("Sequence scoring accumulates correctly", "[scoring]") {
+    // Use a deterministic factory to control cascade behavior
+    auto factory = sequenceFactory({
+        GemType::PURPLE, GemType::ORANGE, GemType::YELLOW,
+        GemType::GREEN, GemType::BLUE, GemType::PURPLE,
+        GemType::ORANGE, GemType::YELLOW
+    });
+    BoardLogic logic(factory);
+
+    SECTION("Valid swap updates board state score") {
+        auto state = noMatchBoard();
+        // Set up vertical match after swap
+        state.at(0, 1) = GemType::PURPLE;
+        state.at(1, 1) = GemType::PURPLE;
+        state.at(2, 0) = GemType::PURPLE;
+        state.at(2, 1) = GemType::BLUE;
+
+        int initialScore = state.score;
+        Move move{{2, 0}, {2, 1}};
+        auto result = logic.executeSequence(state, move);
+
+        CHECK(result.swapValid == true);
+        CHECK(result.totalScore >= 30);
+        CHECK(state.score == initialScore + result.totalScore);
+    }
+
+    SECTION("Invalid swap does not change score") {
+        auto state = noMatchBoard();
+        int initialScore = state.score;
+
+        Move move{{0, 0}, {0, 1}};
+        auto result = logic.executeSequence(state, move);
+
+        CHECK(result.swapValid == false);
+        CHECK(result.totalScore == 0);
+        CHECK(state.score == initialScore);
+    }
+}
+
+TEST_CASE("Score persists in BoardState", "[scoring]") {
+    BoardLogic logic;
+
+    SECTION("Initial score is zero") {
+        BoardState state;
+        CHECK(state.score == 0);
+    }
+
+    SECTION("Score can be set and retrieved") {
+        BoardState state;
+        state.score = 100;
+        CHECK(state.score == 100);
+    }
+
+    SECTION("Score accumulates across multiple operations") {
+        BoardState state;
+        state.score = 50;
+        state.score += 30;
+        state.score += 20;
+        CHECK(state.score == 100);
+    }
+}

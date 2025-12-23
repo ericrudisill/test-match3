@@ -2,6 +2,7 @@
 
 #include "Grid.h"
 #include <SDL3/SDL.h>
+#include <SDL3_ttf/SDL_ttf.h>
 
 class Renderer {
 public:
@@ -17,6 +18,7 @@ public:
 
 private:
     SDL_Renderer* renderer;
+    TTF_Font* font;
     int windowWidth;
     int windowHeight;
     int gemSize;

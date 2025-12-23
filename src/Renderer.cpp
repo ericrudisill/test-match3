@@ -1,9 +1,11 @@
 #include "Renderer.h"
 #include "MathUtils.h"
 #include <cmath>
+#include <cstdio>
 
 Renderer::Renderer(SDL_Renderer* renderer, int windowWidth, int windowHeight)
     : renderer(renderer)
+    , font(nullptr)
     , windowWidth(windowWidth)
     , windowHeight(windowHeight)
     , gemSize(0)
@@ -11,9 +13,21 @@ Renderer::Renderer(SDL_Renderer* renderer, int windowWidth, int windowHeight)
     , gridOffsetY(0)
 {
     calculateLayout();
+
+    // Load font from bundled assets directory
+    // The font file should be placed in assets/fonts/ relative to the executable
+    font = TTF_OpenFont("assets/fonts/DejaVuSans.ttf", 32.0f);
+
+    if (!font) {
+        SDL_Log("Warning: Could not load font from assets/fonts/DejaVuSans.ttf: %s", SDL_GetError());
+    }
 }
 
 Renderer::~Renderer() {
+    if (font) {
+        TTF_CloseFont(font);
+        font = nullptr;
+    }
 }
 
 void Renderer::setWindowSize(int width, int height) {
@@ -102,8 +116,7 @@ void Renderer::drawGem(const Gem* gem, float alpha) {
 }
 
 void Renderer::drawScore(int score) {
-    // Simple score display using rectangles (no text rendering for simplicity)
-    // In a production game, you would use SDL_ttf or similar for text
+    // Draw score background bar
     SDL_FRect scoreBar;
     scoreBar.x = 10;
     scoreBar.y = 10;
@@ -113,15 +126,42 @@ void Renderer::drawScore(int score) {
     SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
     SDL_RenderFillRect(renderer, &scoreBar);
 
-    // Draw score indicator (proportional to score)
-    SDL_FRect scoreFill;
-    scoreFill.x = 15;
-    scoreFill.y = 15;
-    scoreFill.w = std::min(static_cast<float>(score), scoreBar.w - 10);
-    scoreFill.h = 50;
+    if (!font) {
+        return;
+    }
 
-    SDL_SetRenderDrawColor(renderer, 100, 200, 100, 255);
-    SDL_RenderFillRect(renderer, &scoreFill);
+    // Format score text
+    char scoreText[64];
+    snprintf(scoreText, sizeof(scoreText), "Score: %d", score);
+
+    // Render text to surface
+    SDL_Color textColor = {255, 255, 255, 255};
+    SDL_Surface* textSurface = TTF_RenderText_Blended(font, scoreText, 0, textColor);
+    if (!textSurface) {
+        return;
+    }
+
+    // Create texture from surface
+    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+    SDL_DestroySurface(textSurface);
+
+    if (!textTexture) {
+        return;
+    }
+
+    // Get texture dimensions
+    float textWidth, textHeight;
+    SDL_GetTextureSize(textTexture, &textWidth, &textHeight);
+
+    // Position text centered vertically in the score bar, left-aligned with padding
+    SDL_FRect textRect;
+    textRect.x = 20;
+    textRect.y = scoreBar.y + (scoreBar.h - textHeight) / 2;
+    textRect.w = textWidth;
+    textRect.h = textHeight;
+
+    SDL_RenderTexture(renderer, textTexture, nullptr, &textRect);
+    SDL_DestroyTexture(textTexture);
 }
 
 SDL_Color Renderer::getGemColor(GemType type) const {

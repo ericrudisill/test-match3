@@ -21,10 +21,14 @@ if(PLATFORM_ANDROID)
     # Android uses SDL3 as a shared library
     find_library(SDL3_LIBRARY SDL3 REQUIRED)
     set(SDL3_LIBRARIES ${SDL3_LIBRARY})
+    find_library(SDL3_TTF_LIBRARY SDL3_ttf REQUIRED)
+    set(SDL3_TTF_LIBRARIES ${SDL3_TTF_LIBRARY})
 elseif(PLATFORM_IOS)
     # iOS specific SDL3 setup
     find_library(SDL3_LIBRARY SDL3 REQUIRED)
     set(SDL3_LIBRARIES ${SDL3_LIBRARY})
+    find_library(SDL3_TTF_LIBRARY SDL3_ttf REQUIRED)
+    set(SDL3_TTF_LIBRARIES ${SDL3_TTF_LIBRARY})
 else()
     # Desktop: Try to find SDL3 via find_package or pkg-config
     find_package(SDL3 QUIET)
@@ -44,6 +48,28 @@ else()
         message(FATAL_ERROR "SDL3 not found! Please build from source:\n"
                 "  git clone https://github.com/libsdl-org/SDL.git SDL3 --depth 1\n"
                 "  cd SDL3 && mkdir build && cd build\n"
+                "  cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/.local\n"
+                "  cmake --build . && cmake --install .")
+    endif()
+
+    # SDL3_ttf: Try to find via find_package or pkg-config
+    find_package(SDL3_ttf QUIET)
+    if(NOT SDL3_ttf_FOUND)
+        find_package(PkgConfig QUIET)
+        if(PkgConfig_FOUND)
+            pkg_check_modules(SDL3_TTF IMPORTED_TARGET sdl3-ttf)
+            if(SDL3_TTF_FOUND)
+                set(SDL3_TTF_LIBRARIES PkgConfig::SDL3_TTF)
+            endif()
+        endif()
+    else()
+        set(SDL3_TTF_LIBRARIES SDL3_ttf::SDL3_ttf)
+    endif()
+
+    if(NOT SDL3_ttf_FOUND AND NOT SDL3_TTF_FOUND)
+        message(FATAL_ERROR "SDL3_ttf not found! Please build from source:\n"
+                "  git clone https://github.com/libsdl-org/SDL_ttf.git SDL3_ttf --depth 1\n"
+                "  cd SDL3_ttf && mkdir build && cd build\n"
                 "  cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/.local\n"
                 "  cmake --build . && cmake --install .")
     endif()
@@ -89,7 +115,7 @@ else()
 endif()
 
 # Link libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL3_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL3_LIBRARIES} ${SDL3_TTF_LIBRARIES})
 
 # Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
