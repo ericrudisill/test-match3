@@ -35,11 +35,14 @@ void Gem::update(float deltaTime) {
             y = static_cast<float>(row);
             state = GemState::IDLE;
         } else {
-            // Smooth interpolation from starting position to target
+            // Smoothstep interpolation: 3t² - 2t³
+            // This cubic polynomial has zero derivative at t=0 and t=1,
+            // creating smooth ease-in-ease-out motion (no abrupt starts/stops)
             float t = animationProgress;
-            t = t * t * (3.0f - 2.0f * t); // Smoothstep
-            x = startX + (static_cast<float>(targetCol) - startX) * t;
-            y = startY + (static_cast<float>(targetRow) - startY) * t;
+            float tSquared = t * t;
+            float smoothT = (3.0f * tSquared) - (2.0f * tSquared * t);
+            x = startX + (static_cast<float>(targetCol) - startX) * smoothT;
+            y = startY + (static_cast<float>(targetRow) - startY) * smoothT;
         }
     } else if (state == GemState::EXPLODING) {
         animationProgress += deltaTime * 2.0f;
