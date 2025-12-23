@@ -1,16 +1,6 @@
 #pragma once
 
-#include <SDL3/SDL.h>
-
-enum class GemType {
-    RED,
-    GREEN,
-    BLUE,
-    YELLOW,
-    PURPLE,
-    ORANGE,
-    COUNT
-};
+#include "BoardTypes.h"
 
 enum class GemState {
     IDLE,

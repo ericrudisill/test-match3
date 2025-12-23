@@ -231,7 +231,12 @@ open Match3Game.xcodeproj
 │   ├── Grid.cpp/h          # Grid logic and match detection
 │   ├── Gem.cpp/h           # Gem entity and animations
 │   ├── Renderer.cpp/h      # Rendering system
-│   └── InputHandler.cpp/h  # Input handling for all platforms
+│   ├── InputHandler.cpp/h  # Input handling for all platforms
+│   ├── BoardTypes.h        # Pure data types (no SDL dependency)
+│   └── BoardLogic.cpp/h    # Testable game logic
+├── tests/                   # Unit tests
+│   ├── BoardLogicTests.cpp # Game logic tests
+│   └── TestHelpers.h       # Test utilities
 ├── docs/                    # Documentation
 │   └── SDL3-Installation.md # Detailed SDL3 build instructions
 ├── android/                 # Android-specific files
@@ -320,6 +325,60 @@ This project is provided as-is for educational purposes.
 ## Dependencies
 
 - [SDL3](https://www.libsdl.org/) - Simple DirectMedia Layer for cross-platform multimedia
+
+## Testing
+
+The game logic is separated into a testable layer that runs without SDL or graphics.
+
+### Running Tests
+
+```bash
+# Configure with tests enabled
+cmake -B build -DBUILD_TESTS=ON
+
+# Build
+cmake --build build
+
+# Run tests
+./build/Match3Tests
+
+# Or use CTest
+ctest --test-dir build --output-on-failure
+```
+
+### Test Coverage
+
+The test suite covers:
+- Match detection (horizontal, vertical, L-shaped, T-shaped)
+- Gravity and gem falling
+- Swap validation
+- Valid moves detection
+- Cascade sequences
+- Edge cases
+
+### Writing Tests
+
+Tests use the Catch2 framework. Use the helper functions in `tests/TestHelpers.h`:
+
+```cpp
+#include "BoardLogic.h"
+#include "TestHelpers.h"
+
+TEST_CASE("My test", "[tag]") {
+    BoardLogic logic;
+
+    // Create a board with no matches
+    auto state = noMatchBoard();
+
+    // Add specific gems for testing
+    state.at(0, 0) = GemType::RED;
+    state.at(0, 1) = GemType::RED;
+    state.at(0, 2) = GemType::RED;
+
+    auto result = logic.checkMatches(state);
+    CHECK(result.matchedPositions.size() == 3);
+}
+```
 
 ## Future Enhancements
 

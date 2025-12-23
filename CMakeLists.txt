@@ -49,6 +49,16 @@ else()
     endif()
 endif()
 
+# Core logic library (no SDL dependency - for testing)
+set(LOGIC_SOURCES
+    src/BoardLogic.cpp
+)
+
+set(LOGIC_HEADERS
+    src/BoardTypes.h
+    src/BoardLogic.h
+)
+
 # Source files
 set(GAME_SOURCES
     src/main.cpp
@@ -69,13 +79,13 @@ set(GAME_HEADERS
 
 # Platform-specific configurations
 if(PLATFORM_ANDROID)
-    add_library(${PROJECT_NAME} SHARED ${GAME_SOURCES} ${GAME_HEADERS})
+    add_library(${PROJECT_NAME} SHARED ${GAME_SOURCES} ${GAME_HEADERS} ${LOGIC_SOURCES} ${LOGIC_HEADERS})
     include(android/android.cmake)
 elseif(PLATFORM_IOS)
-    add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${GAME_SOURCES} ${GAME_HEADERS})
+    add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${GAME_SOURCES} ${GAME_HEADERS} ${LOGIC_SOURCES} ${LOGIC_HEADERS})
     include(ios/ios.cmake)
 else()
-    add_executable(${PROJECT_NAME} ${GAME_SOURCES} ${GAME_HEADERS})
+    add_executable(${PROJECT_NAME} ${GAME_SOURCES} ${GAME_HEADERS} ${LOGIC_SOURCES} ${LOGIC_HEADERS})
 endif()
 
 # Link libraries
@@ -98,4 +108,33 @@ if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4)
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+# Testing
+option(BUILD_TESTS "Build unit tests" OFF)
+
+if(BUILD_TESTS)
+    # Fetch Catch2
+    include(FetchContent)
+    FetchContent_Declare(
+        Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG v3.5.0
+    )
+    FetchContent_MakeAvailable(Catch2)
+
+    # Core logic library (no SDL dependency)
+    add_library(Match3Logic STATIC ${LOGIC_SOURCES} ${LOGIC_HEADERS})
+    target_include_directories(Match3Logic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+    # Test executable
+    add_executable(Match3Tests
+        tests/BoardLogicTests.cpp
+    )
+    target_link_libraries(Match3Tests PRIVATE Match3Logic Catch2::Catch2WithMain)
+
+    # Enable CTest
+    include(CTest)
+    include(Catch)
+    catch_discover_tests(Match3Tests)
 endif()

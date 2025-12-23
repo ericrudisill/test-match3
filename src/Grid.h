@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Gem.h"
+#include "BoardLogic.h"
 #include <vector>
 #include <memory>
 
@@ -21,18 +22,20 @@ public:
     void applyGravity();
     void fillEmpty();
 
-    int getScore() const { return score; }
+    int getScore() const { return boardState.score; }
     bool hasValidMoves() const;
+
+    const BoardState& getBoardState() const { return boardState; }
 
 private:
     std::vector<std::vector<std::unique_ptr<Gem>>> gems;
     std::vector<std::pair<int, int>> matchedPositions;
-    int score;
+    BoardState boardState;
+    BoardLogic boardLogic;
 
     void createGem(int row, int col);
-    GemType getRandomGemType() const;
+    void syncGemToBoard(int row, int col);
+    void syncBoardToGem(int row, int col);
     bool isValidPosition(int row, int col) const;
-    bool wouldCreateMatch(int row, int col, GemType type) const;
-    void findMatches(int row, int col, std::vector<std::pair<int, int>>& matches);
     bool areAdjacent(int row1, int col1, int row2, int col2) const;
 };

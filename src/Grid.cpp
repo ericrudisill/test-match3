@@ -1,24 +1,20 @@
 #include "Grid.h"
 #include <algorithm>
-#include <random>
-#include <set>
 
-Grid::Grid() : score(0) {
+Grid::Grid() {
     gems.resize(ROWS);
     for (int row = 0; row < ROWS; ++row) {
         gems[row].resize(COLS);
-        for (int col = 0; col < COLS; ++col) {
-            createGem(row, col);
-        }
     }
 
-    // Remove any initial matches
-    while (true) {
-        checkMatches();
-        if (matchedPositions.empty()) break;
-        removeMatches();
-        applyGravity();
-        fillEmpty();
+    // Initialize board state using BoardLogic (avoids initial matches)
+    boardLogic.initializeBoard(boardState);
+
+    // Create Gem objects to match board state
+    for (int row = 0; row < ROWS; ++row) {
+        for (int col = 0; col < COLS; ++col) {
+            syncBoardToGem(row, col);
+        }
     }
 }
 
@@ -62,10 +58,11 @@ bool Grid::swapGems(int row1, int col1, int row2, int col2) {
 
     if (!gem1 || !gem2) return false;
 
-    // Swap in grid
+    // Swap in grid and board state
     std::swap(gems[row1][col1], gems[row2][col2]);
+    std::swap(boardState.at(row1, col1), boardState.at(row2, col2));
 
-    // Update gem positions
+    // Update gem positions and trigger animation
     gem1->setRow(row2);
     gem1->setCol(col2);
     gem1->setTarget(row2, col2);
@@ -80,38 +77,37 @@ bool Grid::swapGems(int row1, int col1, int row2, int col2) {
 }
 
 void Grid::checkMatches() {
+    auto result = boardLogic.checkMatches(boardState);
+
     matchedPositions.clear();
-    std::set<std::pair<int, int>> uniqueMatches;
-
-    for (int row = 0; row < ROWS; ++row) {
-        for (int col = 0; col < COLS; ++col) {
-            if (!gems[row][col]) continue;
-
-            std::vector<std::pair<int, int>> matches;
-            findMatches(row, col, matches);
-
-            if (matches.size() >= 3) {
-                for (const auto& pos : matches) {
-                    uniqueMatches.insert(pos);
-                }
-            }
-        }
+    for (const auto& pos : result.matchedPositions) {
+        matchedPositions.push_back({pos.row, pos.col});
     }
-
-    matchedPositions.assign(uniqueMatches.begin(), uniqueMatches.end());
 }
 
 void Grid::removeMatches() {
     if (matchedPositions.empty()) return;
 
+    // Convert to Position vector for BoardLogic
+    std::vector<Position> positions;
+    for (const auto& pos : matchedPositions) {
+        positions.push_back({pos.first, pos.second});
+    }
+
+    // Update score before removing
+    boardState.score += static_cast<int>(positions.size()) * 10;
+
+    // Set gems to exploding state (for animation)
     for (const auto& pos : matchedPositions) {
         int row = pos.first;
         int col = pos.second;
         if (gems[row][col]) {
             gems[row][col]->setState(GemState::EXPLODING);
-            score += 10;
         }
     }
+
+    // Update board state
+    boardLogic.removeMatches(boardState, positions);
 }
 
 void Grid::applyGravity() {
@@ -124,122 +120,69 @@ void Grid::applyGravity() {
         }
     }
 
-    // Apply gravity
-    for (int col = 0; col < COLS; ++col) {
-        int writeRow = ROWS - 1;
-        for (int row = ROWS - 1; row >= 0; --row) {
-            if (gems[row][col]) {
-                if (row != writeRow) {
-                    gems[writeRow][col] = std::move(gems[row][col]);
-                    gems[writeRow][col]->setRow(writeRow);
-                    gems[writeRow][col]->setCol(col);
-                    gems[writeRow][col]->setTarget(writeRow, col);
-                    gems[writeRow][col]->setState(GemState::FALLING);
-                }
-                writeRow--;
-            }
-        }
+    // Compute gravity moves using BoardLogic
+    auto result = boardLogic.applyGravity(boardState);
+
+    // Apply moves to Gem objects with animation
+    for (const auto& move : result.moves) {
+        int fromRow = move.from.row, fromCol = move.from.col;
+        int toRow = move.to.row, toCol = move.to.col;
+
+        gems[toRow][toCol] = std::move(gems[fromRow][fromCol]);
+        gems[toRow][toCol]->setRow(toRow);
+        gems[toRow][toCol]->setCol(toCol);
+        gems[toRow][toCol]->setTarget(toRow, toCol);
+        gems[toRow][toCol]->setState(GemState::FALLING);
     }
 }
 
 void Grid::fillEmpty() {
+    // Collect empty positions
+    std::vector<Position> emptyPositions;
     for (int row = 0; row < ROWS; ++row) {
         for (int col = 0; col < COLS; ++col) {
             if (!gems[row][col]) {
-                createGem(row, col);
-                gems[row][col]->setY(-1.0f);
-                gems[row][col]->setTarget(row, col);
-                gems[row][col]->setState(GemState::FALLING);
+                emptyPositions.push_back({row, col});
             }
         }
+    }
+
+    // Fill empty positions in board state
+    boardLogic.fillEmpty(boardState, emptyPositions);
+
+    // Create Gem objects for filled positions
+    for (const auto& pos : emptyPositions) {
+        syncBoardToGem(pos.row, pos.col);
+        gems[pos.row][pos.col]->setY(-1.0f);
+        gems[pos.row][pos.col]->setTarget(pos.row, pos.col);
+        gems[pos.row][pos.col]->setState(GemState::FALLING);
     }
 }
 
 void Grid::createGem(int row, int col) {
-    GemType type;
-    do {
-        type = getRandomGemType();
-    } while (wouldCreateMatch(row, col, type));
-
+    GemType type = boardState.at(row, col);
     gems[row][col] = std::make_unique<Gem>(row, col, type);
 }
 
-GemType Grid::getRandomGemType() const {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, static_cast<int>(GemType::COUNT) - 1);
-    return static_cast<GemType>(dis(gen));
+void Grid::syncGemToBoard(int row, int col) {
+    if (gems[row][col]) {
+        boardState.at(row, col) = gems[row][col]->getType();
+    } else {
+        boardState.at(row, col) = GemType::EMPTY;
+    }
+}
+
+void Grid::syncBoardToGem(int row, int col) {
+    GemType type = boardState.at(row, col);
+    if (type != GemType::EMPTY) {
+        gems[row][col] = std::make_unique<Gem>(row, col, type);
+    } else {
+        gems[row][col].reset();
+    }
 }
 
 bool Grid::isValidPosition(int row, int col) const {
     return row >= 0 && row < ROWS && col >= 0 && col < COLS;
-}
-
-bool Grid::wouldCreateMatch(int row, int col, GemType type) const {
-    // Check horizontal
-    int horizontalCount = 1;
-    for (int c = col - 1; c >= 0; --c) {
-        if (c >= static_cast<int>(gems[row].size()) || !gems[row][c]) break;
-        if (gems[row][c]->getType() != type) break;
-        horizontalCount++;
-    }
-    for (int c = col + 1; c < COLS; ++c) {
-        if (c >= static_cast<int>(gems[row].size()) || !gems[row][c]) break;
-        if (gems[row][c]->getType() != type) break;
-        horizontalCount++;
-    }
-    if (horizontalCount >= 3) return true;
-
-    // Check vertical
-    int verticalCount = 1;
-    for (int r = row - 1; r >= 0; --r) {
-        if (r >= static_cast<int>(gems.size()) || col >= static_cast<int>(gems[r].size()) || !gems[r][col]) break;
-        if (gems[r][col]->getType() != type) break;
-        verticalCount++;
-    }
-    for (int r = row + 1; r < ROWS; ++r) {
-        if (r >= static_cast<int>(gems.size()) || col >= static_cast<int>(gems[r].size()) || !gems[r][col]) break;
-        if (gems[r][col]->getType() != type) break;
-        verticalCount++;
-    }
-    if (verticalCount >= 3) return true;
-
-    return false;
-}
-
-void Grid::findMatches(int row, int col, std::vector<std::pair<int, int>>& matches) {
-    if (!gems[row][col]) return;
-
-    GemType type = gems[row][col]->getType();
-    matches.clear();
-
-    // Check horizontal
-    std::vector<std::pair<int, int>> horizontal;
-    horizontal.push_back({row, col});
-    for (int c = col - 1; c >= 0 && gems[row][c] && gems[row][c]->getType() == type; --c) {
-        horizontal.push_back({row, c});
-    }
-    for (int c = col + 1; c < COLS && gems[row][c] && gems[row][c]->getType() == type; ++c) {
-        horizontal.push_back({row, c});
-    }
-
-    // Check vertical
-    std::vector<std::pair<int, int>> vertical;
-    vertical.push_back({row, col});
-    for (int r = row - 1; r >= 0 && gems[r][col] && gems[r][col]->getType() == type; --r) {
-        vertical.push_back({r, col});
-    }
-    for (int r = row + 1; r < ROWS && gems[r][col] && gems[r][col]->getType() == type; ++r) {
-        vertical.push_back({r, col});
-    }
-
-    // Add matches
-    if (horizontal.size() >= 3) {
-        matches.insert(matches.end(), horizontal.begin(), horizontal.end());
-    }
-    if (vertical.size() >= 3) {
-        matches.insert(matches.end(), vertical.begin(), vertical.end());
-    }
 }
 
 bool Grid::areAdjacent(int row1, int col1, int row2, int col2) const {
@@ -249,33 +192,5 @@ bool Grid::areAdjacent(int row1, int col1, int row2, int col2) const {
 }
 
 bool Grid::hasValidMoves() const {
-    // Simple check: try all possible swaps
-    for (int row = 0; row < ROWS; ++row) {
-        for (int col = 0; col < COLS; ++col) {
-            if (!gems[row][col]) continue;
-
-            // Check right swap
-            if (col + 1 < COLS && gems[row][col + 1]) {
-                GemType type1 = gems[row][col]->getType();
-                GemType type2 = gems[row][col + 1]->getType();
-
-                // Simulate swap
-                if (wouldCreateMatch(row, col, type2) || wouldCreateMatch(row, col + 1, type1)) {
-                    return true;
-                }
-            }
-
-            // Check down swap
-            if (row + 1 < ROWS && gems[row + 1][col]) {
-                GemType type1 = gems[row][col]->getType();
-                GemType type2 = gems[row + 1][col]->getType();
-
-                // Simulate swap
-                if (wouldCreateMatch(row, col, type2) || wouldCreateMatch(row + 1, col, type1)) {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
+    return boardLogic.hasValidMoves(boardState);
 }
