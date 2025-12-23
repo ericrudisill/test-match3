@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "MathUtils.h"
 
 Game::Game()
     : window(nullptr)
@@ -73,10 +74,7 @@ void Game::run() {
         float deltaTime = (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
 
-        // Cap delta time to prevent large jumps
-        if (deltaTime > 0.05f) {
-            deltaTime = 0.05f;
-        }
+        deltaTime = MathUtils::clampDeltaTime(deltaTime);
 
         handleEvents();
         update(deltaTime);

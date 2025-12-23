@@ -1,4 +1,5 @@
 #include "Gem.h"
+#include "MathUtils.h"
 #include <cmath>
 
 Gem::Gem(int row, int col, GemType type)
@@ -35,14 +36,9 @@ void Gem::update(float deltaTime) {
             y = static_cast<float>(row);
             state = GemState::IDLE;
         } else {
-            // Smoothstep interpolation: 3t² - 2t³
-            // This cubic polynomial has zero derivative at t=0 and t=1,
-            // creating smooth ease-in-ease-out motion (no abrupt starts/stops)
-            float t = animationProgress;
-            float tSquared = t * t;
-            float smoothT = (3.0f * tSquared) - (2.0f * tSquared * t);
-            x = startX + (static_cast<float>(targetCol) - startX) * smoothT;
-            y = startY + (static_cast<float>(targetRow) - startY) * smoothT;
+            float smoothT = MathUtils::smoothstep(animationProgress);
+            x = MathUtils::lerp(startX, static_cast<float>(targetCol), smoothT);
+            y = MathUtils::lerp(startY, static_cast<float>(targetRow), smoothT);
         }
     } else if (state == GemState::EXPLODING) {
         animationProgress += deltaTime * 2.0f;

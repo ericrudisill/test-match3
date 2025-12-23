@@ -1,4 +1,5 @@
 #include "Renderer.h"
+#include "MathUtils.h"
 #include <cmath>
 
 Renderer::Renderer(SDL_Renderer* renderer, int windowWidth, int windowHeight)
@@ -87,16 +88,15 @@ void Renderer::drawGem(const Gem* gem, float alpha) {
     rect.w = static_cast<float>(gemSize - 8);
     rect.h = static_cast<float>(gemSize - 8);
 
-    // Apply alpha
-    Uint8 adjustedAlpha = static_cast<Uint8>(255 * alpha);
+    Uint8 adjustedAlpha = MathUtils::normalizedToByte(alpha);
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, adjustedAlpha);
     SDL_RenderFillRect(renderer, &rect);
 
-    // Draw border
+    // Draw border (darkened by 30%)
     SDL_SetRenderDrawColor(renderer,
-        static_cast<Uint8>(color.r * 0.7f),
-        static_cast<Uint8>(color.g * 0.7f),
-        static_cast<Uint8>(color.b * 0.7f),
+        MathUtils::scaleColorComponent(color.r, 0.7f),
+        MathUtils::scaleColorComponent(color.g, 0.7f),
+        MathUtils::scaleColorComponent(color.b, 0.7f),
         adjustedAlpha);
     SDL_RenderRect(renderer, &rect);
 }
