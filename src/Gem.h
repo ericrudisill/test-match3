@@ -7,7 +7,8 @@ enum class GemState {
     FALLING,
     SWAPPING,
     MATCHED,
-    EXPLODING
+    EXPLODING,
+    READY_FOR_REMOVAL
 };
 
 class Gem {
@@ -41,5 +42,6 @@ private:
     int row, col;
     int targetRow, targetCol;
     float x, y;
+    float startX, startY;  // Starting positions for animation
     float animationProgress;
 };

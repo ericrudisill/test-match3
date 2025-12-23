@@ -111,10 +111,10 @@ void Grid::removeMatches() {
 }
 
 void Grid::applyGravity() {
-    // Remove exploded gems first
+    // Remove gems that are ready for removal (finished exploding)
     for (int row = 0; row < ROWS; ++row) {
         for (int col = 0; col < COLS; ++col) {
-            if (gems[row][col] && gems[row][col]->getState() == GemState::EXPLODING) {
+            if (gems[row][col] && gems[row][col]->getState() == GemState::READY_FOR_REMOVAL) {
                 gems[row][col].reset();
             }
         }
