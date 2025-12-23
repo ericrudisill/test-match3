@@ -7,8 +7,9 @@
 
 class Grid {
 public:
-    static const int ROWS = 8;
-    static const int COLS = 8;
+    // Use BoardState dimensions as the single source of truth
+    static const int ROWS = BoardState::ROWS;
+    static const int COLS = BoardState::COLS;
 
     Grid();
 

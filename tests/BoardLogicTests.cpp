@@ -350,7 +350,7 @@ TEST_CASE("Edge cases", "[edge]") {
         }
 
         auto result = logic.checkMatches(state);
-        CHECK(result.matchedPositions.size() == 64);
+        CHECK(result.matchedPositions.size() == BoardState::ROWS * BoardState::COLS);
     }
 }
 

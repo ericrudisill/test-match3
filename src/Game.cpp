@@ -30,11 +30,6 @@ bool Game::init() {
     int windowWidth = 720;
     int windowHeight = 1280;
 
-#ifdef PLATFORM_DESKTOP
-    windowWidth = 1080;
-    windowHeight = 1920;
-#endif
-
     window = SDL_CreateWindow(
         "Match 3 Game",
         windowWidth,
