@@ -17,24 +17,156 @@ A cross-platform Match-3 puzzle game built with C++ and SDL3, supporting Desktop
 - CMake 3.21 or higher
 - C++17 compatible compiler
 - **SDL3** (Simple DirectMedia Layer 3)
+- **SDL3_ttf** (TrueType font rendering for SDL3)
+- **SDL3_image** (Image loading for SDL3)
 
-> **Important:** SDL3 is still in development and not yet available in most package managers. You'll need to build it from source.
+> **Important:** SDL3 and its companion libraries are still in development and not yet available in most package managers. You'll need to build them from source.
 > **See [docs/SDL3-Installation.md](docs/SDL3-Installation.md) for detailed installation instructions.**
 
 ### Quick SDL3 Installation
 
-#### Linux/macOS (User-Local, No Sudo Required)
+> **Note:** Make sure you have CMake installed first (see Additional Desktop Dependencies below)
+
+#### Linux (User-Local, No Sudo Required)
 ```bash
 cd /tmp
+```
+```bash
 git clone https://github.com/libsdl-org/SDL.git SDL3 --depth 1 --branch main
+```
+```bash
 cd SDL3 && mkdir build && cd build
+```
+```bash
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/.local
+```
+```bash
 cmake --build . -j$(nproc)
+```
+```bash
+cmake --install .
+```
+
+#### macOS (User-Local, No Sudo Required)
+```bash
+cd /tmp
+```
+```bash
+git clone https://github.com/libsdl-org/SDL.git SDL3 --depth 1 --branch main
+```
+```bash
+cd SDL3 && mkdir build && cd build
+```
+```bash
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/.local
+```
+```bash
+cmake --build . -j$(sysctl -n hw.ncpu)
+```
+```bash
 cmake --install .
 ```
 
 #### Windows
 See [docs/SDL3-Installation.md](docs/SDL3-Installation.md) for Windows-specific instructions.
+
+### SDL3_ttf Installation
+
+SDL3_ttf provides TrueType font rendering support.
+
+#### macOS
+
+First, install Freetype and Harfbuzz via Homebrew:
+```bash
+brew install freetype harfbuzz
+```
+
+Then build SDL3_ttf:
+```bash
+cd /tmp
+```
+```bash
+git clone https://github.com/libsdl-org/SDL_ttf.git SDL3_ttf --depth 1 --branch main
+```
+```bash
+cd SDL3_ttf && mkdir build && cd build
+```
+```bash
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/.local
+```
+```bash
+cmake --build . -j$(sysctl -n hw.ncpu)
+```
+```bash
+cmake --install .
+```
+
+#### Linux
+
+```bash
+cd /tmp
+```
+```bash
+git clone https://github.com/libsdl-org/SDL_ttf.git SDL3_ttf --depth 1 --branch main
+```
+```bash
+cd SDL3_ttf && mkdir build && cd build
+```
+```bash
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/.local
+```
+```bash
+cmake --build . -j$(nproc)
+```
+```bash
+cmake --install .
+```
+
+### SDL3_image Installation
+
+SDL3_image provides image loading support for various formats.
+
+#### macOS
+
+```bash
+cd /tmp
+```
+```bash
+git clone https://github.com/libsdl-org/SDL_image.git SDL3_image --depth 1 --branch main
+```
+```bash
+cd SDL3_image && mkdir build && cd build
+```
+```bash
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/.local
+```
+```bash
+cmake --build . -j$(sysctl -n hw.ncpu)
+```
+```bash
+cmake --install .
+```
+
+#### Linux
+
+```bash
+cd /tmp
+```
+```bash
+git clone https://github.com/libsdl-org/SDL_image.git SDL3_image --depth 1 --branch main
+```
+```bash
+cd SDL3_image && mkdir build && cd build
+```
+```bash
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/.local
+```
+```bash
+cmake --build . -j$(nproc)
+```
+```bash
+cmake --install .
+```
 
 ### Additional Desktop Dependencies
 
@@ -47,11 +179,19 @@ sudo apt-get install cmake build-essential pkg-config \
 ```
 
 #### macOS
-```bash
-# Install Xcode Command Line Tools
-xcode-select --install
 
-# Install CMake
+**Step 1:** Install Xcode Command Line Tools:
+```bash
+xcode-select --install
+```
+
+**Step 2:** If you don't have Homebrew installed, install it (requires password):
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+**Step 3:** Install CMake:
+```bash
 brew install cmake
 ```
 
