@@ -6,7 +6,7 @@ class InputHandler {
 public:
     InputHandler(int gemSize, int gridOffsetX, int gridOffsetY);
 
-    void handleEvent(const SDL_Event& event);
+    void handleEvent(const SDL_Event& event, SDL_Renderer* renderer);
     void update(int gemSize, int gridOffsetX, int gridOffsetY);
 
     bool hasSelection() const { return selectedRow >= 0; }

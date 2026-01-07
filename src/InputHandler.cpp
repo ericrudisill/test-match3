@@ -23,24 +23,28 @@ void InputHandler::update(int newGemSize, int newGridOffsetX, int newGridOffsetY
     gridOffsetY = newGridOffsetY;
 }
 
-void InputHandler::handleEvent(const SDL_Event& event) {
+void InputHandler::handleEvent(const SDL_Event& event, SDL_Renderer* renderer) {
     if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_FINGER_DOWN) {
         float x, y;
 
         if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
-            x = static_cast<float>(event.button.x);
-            y = static_cast<float>(event.button.y);
+            // Get the scale factor between window and render coordinates
+            SDL_Window* window = SDL_GetRenderWindow(renderer);
+            int windowWidth, windowHeight, renderWidth, renderHeight;
+            SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+            SDL_GetRenderOutputSize(renderer, &renderWidth, &renderHeight);
+            float scaleX = static_cast<float>(renderWidth) / windowWidth;
+            float scaleY = static_cast<float>(renderHeight) / windowHeight;
+
+            // Scale mouse coordinates to render space
+            x = event.button.x * scaleX;
+            y = event.button.y * scaleY;
         } else {
-            // Finger touch - normalize coordinates
-            int windowWidth, windowHeight;
-            SDL_Window* window = SDL_GetWindowFromID(event.tfinger.windowID);
-            if (window) {
-                SDL_GetWindowSize(window, &windowWidth, &windowHeight);
-                x = event.tfinger.x * windowWidth;
-                y = event.tfinger.y * windowHeight;
-            } else {
-                return;
-            }
+            // Finger touch - already normalized to render output size
+            int renderWidth, renderHeight;
+            SDL_GetRenderOutputSize(renderer, &renderWidth, &renderHeight);
+            x = event.tfinger.x * renderWidth;
+            y = event.tfinger.y * renderHeight;
         }
 
         int row, col;
@@ -60,18 +64,23 @@ void InputHandler::handleEvent(const SDL_Event& event) {
         float x, y;
 
         if (event.type == SDL_EVENT_MOUSE_MOTION) {
-            x = static_cast<float>(event.motion.x);
-            y = static_cast<float>(event.motion.y);
+            // Get the scale factor between window and render coordinates
+            SDL_Window* window = SDL_GetRenderWindow(renderer);
+            int windowWidth, windowHeight, renderWidth, renderHeight;
+            SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+            SDL_GetRenderOutputSize(renderer, &renderWidth, &renderHeight);
+            float scaleX = static_cast<float>(renderWidth) / windowWidth;
+            float scaleY = static_cast<float>(renderHeight) / windowHeight;
+
+            // Scale mouse coordinates to render space
+            x = event.motion.x * scaleX;
+            y = event.motion.y * scaleY;
         } else {
-            int windowWidth, windowHeight;
-            SDL_Window* window = SDL_GetWindowFromID(event.tfinger.windowID);
-            if (window) {
-                SDL_GetWindowSize(window, &windowWidth, &windowHeight);
-                x = event.tfinger.x * windowWidth;
-                y = event.tfinger.y * windowHeight;
-            } else {
-                return;
-            }
+            // Finger touch - already normalized to render output size
+            int renderWidth, renderHeight;
+            SDL_GetRenderOutputSize(renderer, &renderWidth, &renderHeight);
+            x = event.tfinger.x * renderWidth;
+            y = event.tfinger.y * renderHeight;
         }
 
         float dx = x - touchStartX;

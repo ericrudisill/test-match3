@@ -123,7 +123,7 @@ void Game::handleEvents() {
             running = false;
         }
         else {
-            inputHandler->handleEvent(event);
+            inputHandler->handleEvent(event, renderer);
         }
     }
 }
