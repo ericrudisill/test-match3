@@ -51,8 +51,9 @@ bool Game::init() {
     // Enable VSync
     SDL_SetRenderVSync(renderer, 1);
 
-    // Get actual window size (may differ on high-DPI displays)
-    SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+    // Get actual render output size (accounts for high-DPI scaling and actual drawable area)
+    // This is important for Retina/high-DPI displays where render output may be 2x window size
+    SDL_GetRenderOutputSize(renderer, &windowWidth, &windowHeight);
 
     // Initialize game objects
     grid = std::make_unique<Grid>();
@@ -110,7 +111,7 @@ void Game::handleEvents() {
         }
         else if (event.type == SDL_EVENT_WINDOW_RESIZED) {
             int width, height;
-            SDL_GetWindowSize(window, &width, &height);
+            SDL_GetRenderOutputSize(renderer, &width, &height);
             gameRenderer->setWindowSize(width, height);
             inputHandler->update(
                 gameRenderer->getGemSize(),
